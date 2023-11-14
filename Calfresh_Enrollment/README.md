@@ -4,7 +4,7 @@
 
 Aim: an interactively linked spatial and temporal visualization of enrollment data from CalFresh, a nutritional assistance program in California. 
 
-[line_plot.html]([Star732](https://star732.github.io/UW_Madison_STAT679/Calfresh_Enrollment/line_plot.html)
+[line_plot.html](https://star732.github.io/UW_Madison_STAT679/Calfresh_Enrollment/line_plot.html)
 
 - Using a line generator, create a static line plot that visualizes change in enrollment for every county in California.
 
