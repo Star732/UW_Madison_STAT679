@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Shadows+Into+Light&display=swap');
+
+#map path {
+  stroke: #0c0c0c;
+}
+
+#name text {
+  font-family: "Georgia";
+  font-size: 25px;
+}
+
+/* the command below was exported from https://fonts.google.com/ */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@500&family=Oswald&display=swap');
+
+path {
+  stroke-width: 1px;
+  stroke: #a8a8a8;
+  stroke-opacity: 0.6;
+}
