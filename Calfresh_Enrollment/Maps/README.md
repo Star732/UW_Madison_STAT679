@@ -1,0 +1,1 @@
+Only Maps are displayed
