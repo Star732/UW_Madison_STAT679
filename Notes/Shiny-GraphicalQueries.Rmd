@@ -1,1 +1,185 @@
+---
+title: "notes"
+author: "Xingyu Tang"
+date: "`r Sys.Date()`"
+output: html_document
+---
 
+```{r}
+library(tidyverse)
+library(shiny)
+```
+
+```{r}
+# scatterplot plot with point size dependent on click location
+mpg.vs.disp1 <- function(x, dists) {
+  x |>
+    mutate(dist = dists) |>
+    ggplot() +
+    geom_point(aes(mpg, disp, size = dist, col = factor(am))) +
+    scale_size(range = c(6, 1))
+}
+
+mpg.vs.wt <- function(x, selected_){
+  x |>
+    mutate(selected_ = selected_) |>
+    ggplot(aes(wt, mpg)) +
+    geom_point(aes(col = factor(cyl), alpha = as.numeric(selected_))) +
+    geom_smooth(method = "lm") +
+    scale_alpha(range = c(0.1, 1))
+}
+
+```
+
+
+
+```{r}
+# wrapper to get the distances from points to clicks
+reset_dist <- function(x, click) {
+  nearPoints(x, click, allRows = TRUE, addDist = TRUE)$dist_
+}
+
+reset_selection <- function(x, brush) {
+  brushedPoints(x, brush, allRows = TRUE)$selected_
+}
+```
+
+### Separate Click Event and Brush Event
+
+```{r}
+ui <- fluidPage(
+  fluidRow(
+    column(6, plotOutput("click", click = "plot_click")),
+    column(6, plotOutput("brush", brush = "wt_brush"))
+  ),
+  dataTableOutput("table")
+)
+
+server <- function(input, output) {
+  dist <- reactiveVal(rep(1, nrow(mtcars)))
+  observeEvent(
+    input$plot_click,
+    dist(reset_dist(mtcars, input$plot_click))
+  )
+  
+  selected <- reactiveVal(rep(TRUE, nrow(mtcars)))
+  observeEvent(
+    input$wt_brush,
+    selected(reset_selection(mtcars, input$wt_brush))
+  )
+
+  output$click <- renderPlot(mpg.vs.disp1(mtcars, dist()))
+  output$brush <- renderPlot(mpg.vs.wt(mtcars, selected()))
+  output$table <- renderDataTable(filter(mtcars, selected()))
+}
+
+shinyApp(ui, server)
+```
+### Linked Brush
+
+```{r}
+histogram <- function(x, selected_) {
+  x.filter <- x |>
+    filter(selected_) |>
+    count(carb)
+  
+  x |>
+    count(carb) |>
+    ggplot(aes(carb, n)) +
+    geom_bar(stat = "identity", fill = "#d3d3d3") +
+    geom_bar(data = x.filter, stat = "identity")
+}
+```
+
+
+```{r}
+reset_selection <- function(x, brush) {
+  brushedPoints(x, brush, allRows = TRUE)$selected_
+}
+
+ui <- fluidPage(
+  fluidRow(
+    column(6, plotOutput("p1", brush = brushOpts("plot_brush", direction = "x"))),
+    column(6, plotOutput("p2", brush = "plot_brush"))
+  ),
+  dataTableOutput("table")
+)
+
+server <- function(input, output) {
+  selected <- reactiveVal(rep(TRUE, nrow(mtcars)))
+
+  observeEvent(
+    input$plot_brush,
+    selected(reset_selection(mtcars, input$plot_brush))
+  )
+
+  output$p1 <- renderPlot(histogram(mtcars, selected()))
+  output$p2 <- renderPlot(mpg.vs.wt(mtcars, selected()))
+  output$table <- renderDataTable(filter(mtcars, selected()))
+}
+
+shinyApp(ui, server)
+```
+
+
+```{r}
+library(DT)
+library(nycflights13)
+
+flights <- flights %>%
+  filter(dep_delay < 200, distance < 3000) %>%
+  mutate(
+    sched_dep_time = round(sched_dep_time, -2),
+    distance = round(distance, -2)
+  )
+counts <- list(
+  "dep_delay" = count(flights, dep_delay),
+  "sched_dep_time" = count(flights, sched_dep_time),
+  "distance" = count(flights, distance)
+)
+
+bar_plot <- function(sub_flights, v, width = 100) {
+  ggplot(counts[[v]], aes(.data[[v]], n)) +
+    geom_bar(fill = "#d3d3d3", stat = "identity", width = width) +
+    geom_bar(data = sub_flights, stat = "identity", width = width)
+}
+
+plot_overlay <- function(selected_, v, width = 100) {
+  flights %>%
+    filter(selected_) %>%
+    count(.data[[v]]) %>%
+    bar_plot(v, width)
+}
+
+reset_selection <- function(x, brush) {
+  xvar <- str_match(brush$mapping$x, "dep_delay|sched_dep_time|distance")[1]
+  brushedPoints(x, brush, allRows = TRUE, xvar = xvar)$selected_
+}
+
+ui <- fluidPage(
+  fluidRow(
+    column(
+      4, 
+      plotOutput("h1", brush = brushOpts("plot_brush", direction = "x"), height = 200),
+      plotOutput("h2", brush = brushOpts("plot_brush", direction = "x"), height = 200),
+      plotOutput("h3", brush = brushOpts("plot_brush", direction = "x"), height = 200)
+    ),
+    column(6, dataTableOutput("table"))
+  ),
+)
+server <- function(input, output) {
+  selected <- reactiveVal(rep(TRUE, nrow(flights)))
+  
+  observeEvent(
+    input$plot_brush,
+    selected(reset_selection(flights, input$plot_brush))
+  )
+  
+  output$h1 <- renderPlot(plot_overlay(selected(), "dep_delay", width = 1))
+  output$h2 <- renderPlot(plot_overlay(selected(), "sched_dep_time"))
+  output$h3 <- renderPlot(plot_overlay(selected(), "distance"))
+  output$table <- renderDataTable(filter(flights, selected()))
+}
+
+shinyApp(ui, server)
+```
