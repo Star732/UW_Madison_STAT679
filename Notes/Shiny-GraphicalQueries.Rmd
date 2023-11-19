@@ -47,7 +47,25 @@ reset_selection <- function(x, brush) {
 ### Separate Click Event and Brush Event
 
 ```{r}
+library(bslib)
+```
+
+```{r}
 ui <- fluidPage(
+  theme = bs_theme(bootswatch = "simplex",
+                   bg = "black",
+                   fg = "white"),#,
+#                   base_font = font_google("Combo"),
+#                   heading_font = font_google("Rubik Moonrocks")),
+  titlePanel("Mtcars"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("bin", "Bins", min = 1, max = 50, value = 30)
+    ),
+    mainPanel(
+      plotOutput("distPlot")
+    )
+  ),
   fluidRow(
     column(6, plotOutput("click", click = "plot_click")),
     column(6, plotOutput("brush", brush = "wt_brush"))
@@ -67,6 +85,13 @@ server <- function(input, output) {
     input$wt_brush,
     selected(reset_selection(mtcars, input$wt_brush))
   )
+  
+  output$distPlot <- renderPlot({
+        x <- rep(rnorm(1e2), sample(1:1e2))
+        bins <- seq(min(x), max(x), length.out = input$bin + 1)
+        hist(x, breaks = bins, col = 'white', border = 'darkblue',
+             main = 'Histogram')
+    }, bg = "darkblue")
 
   output$click <- renderPlot(mpg.vs.disp1(mtcars, dist()))
   output$brush <- renderPlot(mpg.vs.wt(mtcars, selected()))
@@ -183,3 +208,9 @@ server <- function(input, output) {
 
 shinyApp(ui, server)
 ```
+
+
+
+
+
+
